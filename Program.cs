@@ -28,7 +28,7 @@ if (!result.Successful)
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 // GET /contacts
 app.MapGet("/contacts", async (IContactRepository repo) =>
@@ -45,6 +45,8 @@ app.MapGet("/contacts/{id:int}", async (int id, IContactRepository repo) =>
 app.MapPost("/contacts", async (ContactRequest request, IContactRepository repo) =>
 {
     var created = await repo.CreateAsync(request);
+    Console.WriteLine(value: $"Created contact with ID {created.Id}");
+
     return Results.Created($"/contacts/{created.Id}", created);
 });
 
