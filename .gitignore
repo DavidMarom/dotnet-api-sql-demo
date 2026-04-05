@@ -1,0 +1,29 @@
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+.vs/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment / secrets
+appsettings.Development.json
+*.env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+.nuget/
+packages/
+
+# Logs
+*.log
