@@ -1,4 +1,4 @@
-# MyServer — Phonebook API
+# MyServer - Phonebook API
 
 A simple phonebook REST API built with ASP.NET Core 10, Dapper, and PostgreSQL.
 
