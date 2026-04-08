@@ -1,6 +1,8 @@
+using System.Data;
 using Dapper;
 using MyServer.Models;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace MyServer.Repositories;
 
@@ -12,6 +14,7 @@ public interface IContactRepository
     Task<Contact> CreateAsync(ContactRequest request);
     Task<Contact?> UpdateAsync(int id, ContactRequest request);
     Task<bool> DeleteAsync(int id);
+    Task<Contact> UpsertAsync(int? id, ContactRequest request);
 }
 
 public class ContactRepository(string connectionString) : IContactRepository
@@ -62,5 +65,31 @@ public class ContactRepository(string connectionString) : IContactRepository
         await using var conn = new NpgsqlConnection(connectionString);
         var affected = await conn.ExecuteAsync("DELETE FROM contacts WHERE id = @id", new { id });
         return affected > 0;
+    }
+
+    // Demonstrates calling a PostgreSQL stored procedure (CALL syntax, INOUT parameter)
+    public async Task<Contact> UpsertAsync(int? id, ContactRequest request)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new NpgsqlCommand(
+            "CALL upsert_contact(@p_first_name, @p_last_name, @p_phone_number, @p_id)", conn);
+
+        cmd.Parameters.AddWithValue("p_first_name", request.FirstName);
+        cmd.Parameters.AddWithValue("p_last_name", request.LastName);
+        cmd.Parameters.AddWithValue("p_phone_number", request.PhoneNumber);
+
+        var idParam = new NpgsqlParameter("p_id", NpgsqlDbType.Integer)
+        {
+            Direction = ParameterDirection.InputOutput,
+            Value = id.HasValue ? (object)id.Value : DBNull.Value
+        };
+        cmd.Parameters.Add(idParam);
+
+        await cmd.ExecuteNonQueryAsync();
+
+        var resultId = (int)idParam.Value!;
+        return (await GetByIdAsync(resultId))!;
     }
 }

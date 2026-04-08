@@ -68,4 +68,12 @@ app.MapDelete("/contacts/{id:int}", async (int id, IContactRepository repo) =>
     return deleted ? Results.NoContent() : Results.NotFound();
 });
 
+// POST /contacts/upsert?id=  (calls the upsert_contact stored procedure)
+// Omit ?id to insert; provide ?id to update an existing contact (falls back to insert if not found)
+app.MapPost("/contacts/upsert", async (ContactRequest request, IContactRepository repo, int? id = null) =>
+{
+    var contact = await repo.UpsertAsync(id, request);
+    return Results.Ok(contact);
+});
+
 app.Run();
