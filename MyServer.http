@@ -1,6 +1,11 @@
 @MyServer_HostAddress = http://localhost:5105
 
-GET {{MyServer_HostAddress}}/weatherforecast/
+GET {{MyServer_HostAddress}}/contacts
+Accept: application/json
+
+###
+
+GET {{MyServer_HostAddress}}/contacts/search?q=john
 Accept: application/json
 
 ###

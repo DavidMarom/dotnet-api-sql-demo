@@ -8,6 +8,7 @@ public interface IContactRepository
 {
     Task<IEnumerable<Contact>> GetAllAsync();
     Task<Contact?> GetByIdAsync(int id);
+    Task<IEnumerable<Contact>> SearchAsync(string query);
     Task<Contact> CreateAsync(ContactRequest request);
     Task<Contact?> UpdateAsync(int id, ContactRequest request);
     Task<bool> DeleteAsync(int id);
@@ -28,6 +29,14 @@ public class ContactRepository(string connectionString) : IContactRepository
         return await conn.QuerySingleOrDefaultAsync<Contact>(
             "SELECT id, first_name AS FirstName, last_name AS LastName, phone_number AS PhoneNumber FROM contacts WHERE id = @id",
             new { id });
+    }
+
+    public async Task<IEnumerable<Contact>> SearchAsync(string query)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.QueryAsync<Contact>(
+            "SELECT id, first_name AS FirstName, last_name AS LastName, phone_number AS PhoneNumber FROM search_contacts(@query)",
+            new { query });
     }
 
     public async Task<Contact> CreateAsync(ContactRequest request)

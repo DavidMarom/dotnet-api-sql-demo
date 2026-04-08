@@ -34,6 +34,10 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/contacts", async (IContactRepository repo) =>
     Results.Ok(await repo.GetAllAsync()));
 
+// GET /contacts/search?q=
+app.MapGet("/contacts/search", async (string q, IContactRepository repo) =>
+    Results.Ok(await repo.SearchAsync(q)));
+
 // GET /contacts/{id}
 app.MapGet("/contacts/{id:int}", async (int id, IContactRepository repo) =>
 {
