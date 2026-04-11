@@ -22,24 +22,80 @@ public class ContactRepository(string connectionString) : IContactRepository
     public async Task<IEnumerable<Contact>> GetAllAsync()
     {
         await using var conn = new NpgsqlConnection(connectionString);
-        return await conn.QueryAsync<Contact>(
-            "SELECT id, first_name AS FirstName, last_name AS LastName, phone_number AS PhoneNumber FROM contacts ORDER BY last_name, first_name");
+        var contactDict = new Dictionary<int, Contact>();
+        await conn.QueryAsync<Contact, Company, Contact>(
+            @"SELECT c.id, c.first_name AS FirstName, c.last_name AS LastName, c.phone_number AS PhoneNumber,
+                     co.id, co.name AS Name
+              FROM contacts c
+              LEFT JOIN contact_companies cc ON cc.contact_id = c.id
+              LEFT JOIN companies co ON co.id = cc.company_id
+              ORDER BY c.last_name, c.first_name",
+            (contact, company) =>
+            {
+                if (!contactDict.TryGetValue(contact.Id, out var existing))
+                {
+                    existing = contact;
+                    contactDict[contact.Id] = existing;
+                }
+                if (company is not null && company.Id > 0)
+                    existing.Companies.Add(company);
+                return existing;
+            },
+            splitOn: "id");
+        return contactDict.Values;
     }
 
     public async Task<Contact?> GetByIdAsync(int id)
     {
         await using var conn = new NpgsqlConnection(connectionString);
-        return await conn.QuerySingleOrDefaultAsync<Contact>(
-            "SELECT id, first_name AS FirstName, last_name AS LastName, phone_number AS PhoneNumber FROM contacts WHERE id = @id",
-            new { id });
+        var contactDict = new Dictionary<int, Contact>();
+        await conn.QueryAsync<Contact, Company, Contact>(
+            @"SELECT c.id, c.first_name AS FirstName, c.last_name AS LastName, c.phone_number AS PhoneNumber,
+                     co.id, co.name AS Name
+              FROM contacts c
+              LEFT JOIN contact_companies cc ON cc.contact_id = c.id
+              LEFT JOIN companies co ON co.id = cc.company_id
+              WHERE c.id = @id",
+            (contact, company) =>
+            {
+                if (!contactDict.TryGetValue(contact.Id, out var existing))
+                {
+                    existing = contact;
+                    contactDict[contact.Id] = existing;
+                }
+                if (company is not null && company.Id > 0)
+                    existing.Companies.Add(company);
+                return existing;
+            },
+            new { id },
+            splitOn: "id");
+        return contactDict.Values.FirstOrDefault();
     }
 
     public async Task<IEnumerable<Contact>> SearchAsync(string query)
     {
         await using var conn = new NpgsqlConnection(connectionString);
-        return await conn.QueryAsync<Contact>(
-            "SELECT id, first_name AS FirstName, last_name AS LastName, phone_number AS PhoneNumber FROM search_contacts(@query)",
-            new { query });
+        var contactDict = new Dictionary<int, Contact>();
+        await conn.QueryAsync<Contact, Company, Contact>(
+            @"SELECT s.id, s.first_name AS FirstName, s.last_name AS LastName, s.phone_number AS PhoneNumber,
+                     co.id, co.name AS Name
+              FROM search_contacts(@query) s
+              LEFT JOIN contact_companies cc ON cc.contact_id = s.id
+              LEFT JOIN companies co ON co.id = cc.company_id",
+            (contact, company) =>
+            {
+                if (!contactDict.TryGetValue(contact.Id, out var existing))
+                {
+                    existing = contact;
+                    contactDict[contact.Id] = existing;
+                }
+                if (company is not null && company.Id > 0)
+                    existing.Companies.Add(company);
+                return existing;
+            },
+            new { query },
+            splitOn: "id");
+        return contactDict.Values;
     }
 
     public async Task<Contact> CreateAsync(ContactRequest request)
